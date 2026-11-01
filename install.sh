@@ -28,4 +28,4 @@ case ":$PATH:" in
     *":$prefix/bin:"*) ;;
     *) printf '%s\n' 'If codexsw is not found, add the install directory to PATH and reopen your terminal.' "Default: export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
 esac
-printf '%s\n' 'Use codexsw 1 / codexsw 2.'
+printf '%s\n' 'Use codexsw <N>, where N is any positive integer (1, 2, 3, ...).'

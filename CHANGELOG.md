@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+- Support any number of accounts using positive integer IDs starting at 1.
+- Accept sparse and arbitrarily large decimal IDs without numeric rounding.
+- Apply the same IDs to switching, save, login, forget and vault validation.
+- List every saved account in numeric order without inventing missing slots.
+- Preserve existing two-account backups and use bounded login scratch paths.
+- Update built-in help, bilingual command references and upgrade instructions.
+- Test a 512-account collection, large IDs and legacy vault compatibility.
+
 ## 0.1.1
 
 - Load Windows PowerShell's native modules when launched from PowerShell 7.

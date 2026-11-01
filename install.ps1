@@ -49,7 +49,7 @@ try {
         }
     }
     Write-Host "Installed: $(Join-Path $InstallDirectory 'codexsw.cmd')"
-    Write-Host 'Use codexsw 1 / codexsw 2. Existing Windows DPAPI account backups are retained.'
+    Write-Host 'Use codexsw <N>, where N is any positive integer (1, 2, 3, ...). Existing account backups are retained.'
 } finally {
     $absolute = [IO.Path]::GetFullPath($temporary)
     $prefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\codexsw-install-'

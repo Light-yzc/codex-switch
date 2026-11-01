@@ -8,7 +8,11 @@ import { VaultStore, secureDirectory, safePowerShellError } from '../lib/storage
 
 function fixture(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codexsw-storage-test-'));
-  const vault = { version: 1, codex_home: path.join(directory, 'home'), accounts: { '1': { auth: 'FAKE-SECRET-STORAGE-FIXTURE' } } };
+  const vault = { version: 1, codex_home: path.join(directory, 'home'), accounts: {
+    '1': { auth: 'FAKE-SECRET-STORAGE-FIXTURE' },
+    '3': { auth: 'FAKE-SECRET-THIRD' },
+    '9007199254740993': { auth: 'FAKE-SECRET-LARGE-ID' },
+  } };
   t.after(() => {
     assert.equal(path.dirname(directory), path.resolve(os.tmpdir()));
     assert.ok(path.basename(directory).startsWith('codexsw-storage-test-'));
@@ -75,6 +79,17 @@ test('Linux keyring errors never cause a silent file fallback', t => {
   const store = new VaultStore(directory, { backend: 'secret-service', platform: 'linux', run });
   assert.throws(() => store.write(vault), /Secret Service/);
   assert.equal(fs.existsSync(store.file), false);
+});
+
+test('vault validation rejects invalid account keys before loading credentials', t => {
+  const { directory, vault } = fixture(t);
+  // This pure storage check uses file storage on every test host.
+  const store = new VaultStore(directory, { backend: 'file', platform: 'linux' });
+  for (const slot of ['0', '01', '-3', '1.5', '1e3', '../3', '__proto__', '3\n']) {
+    const invalid = { ...vault, accounts: Object.fromEntries([[slot, { auth: 'FAKE-SECRET' }]]) };
+    fs.writeFileSync(store.file, JSON.stringify(invalid));
+    assert.throws(() => store.read(vault.codex_home), /Cannot read the account vault/);
+  }
 });
 
 test('Windows DPAPI protects actual bytes and preserves the original vault schema', { skip: process.platform !== 'win32' }, t => {

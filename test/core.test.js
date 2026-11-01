@@ -8,6 +8,7 @@ import { spawnSync, spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { authInfo, sameAccount, credentialSetting, parseArgs, AccountSwitcher } from '../lib/core.js';
 import { VaultStore, resolvePaths, secureDirectory, acquireLock, unlock, atomicWrite } from '../lib/storage.js';
+import { isSlot, compareSlots } from '../lib/slots.js';
 
 const cli = fileURLToPath(new URL('../bin/codexsw.js', import.meta.url));
 const sensitive = /FAKE-ACCESS|FAKE-REFRESH|fake\.[A-Za-z0-9_-]+\.signature/;
@@ -82,9 +83,28 @@ test('argument validation rejects mistakes before touching any credentials', () 
   assert.equal(parseArgs(['list']).action, 'status');
   assert.equal(parseArgs(['2', '-DeviceAuth']).deviceAuth, true);
   assert.equal(parseArgs(['status', '-CodexHome', '/somewhere', '-StateDirectory', '/state']).codexHome, '/somewhere');
-  for (const args of [['save', '3'], ['login'], ['1', 'extra'], ['unknown'], ['--state-dir'], ['--storage', 'unknown']]) {
+  for (const args of [['save', '0'], ['login'], ['1', 'extra'], ['unknown'], ['--state-dir'], ['--storage', 'unknown']]) {
     assert.throws(() => parseArgs(args));
   }
+});
+
+test('all account commands accept positive decimal strings without a numeric ceiling', () => {
+  const numbers = ['1', '3', '10', '42', '9007199254740993', '9'.repeat(400)];
+  for (const number of numbers) {
+    assert.equal(isSlot(number), true);
+    assert.equal(parseArgs([number]).action, number);
+    for (const action of ['save', 'login', 'forget']) {
+      assert.equal(parseArgs([action, number]).slot, number);
+    }
+  }
+  for (const number of ['0', '-1', '+1', '01', '1.5', '1e3', ' 1', '1 ', '1\n', '1\r\n', '', 'Infinity', 'NaN', '__proto__', '../3', '３']) {
+    assert.equal(isSlot(number), false);
+    for (const args of [[number], ['save', number], ['login', number], ['forget', number]]) {
+      assert.throws(() => parseArgs(args));
+    }
+  }
+  assert.deepEqual(['10', '9007199254740993', '2', '1', '9007199254740992', '100'].sort(compareSlots),
+    ['1', '2', '10', '100', '9007199254740992', '9007199254740993']);
 });
 
 test('TOML scanner handles comments, quotes, CRLF, multiline strings and tables', () => {
@@ -189,13 +209,103 @@ test('first numeric selection registers the original account automatically', t =
   assert.match(f.run(['status']), /\* 1/);
 });
 
-test('a fresh login works without an existing auth.json', t => {
+test('a fresh login can start at a sparse account number without auth.json', t => {
   const f = fixture(t);
   fs.writeFileSync(f.selected, auth('alpha'));
-  f.run(['2'], 1);
-  assert.equal(fs.existsSync(f.record), false);
-  f.run(['1']);
+  f.run(['42']);
   assert.equal(f.read(), fs.readFileSync(f.selected, 'utf8'));
+  assert.match(f.run(['status']), /\* 42  a\*\*\*@example.invalid/);
+});
+
+test('new accounts beyond two support login, refresh, numeric listing, reauth and deletion', t => {
+  const f = fixture(t);
+  const alpha = auth('alpha');
+  const third = auth('third');
+  const tenth = auth('tenth');
+  const huge = '9007199254740993';
+  const long = '9'.repeat(300);
+  const longAuth = auth('long');
+  f.put(alpha);
+  f.run(['1']);
+  fs.writeFileSync(f.selected, third);
+  f.run(['3']);
+  assert.equal(f.read(), third);
+  fs.writeFileSync(f.selected, tenth);
+  f.run(['10']);
+  assert.equal(f.read(), tenth);
+  fs.writeFileSync(f.selected, auth('huge'));
+  f.run([huge]);
+  fs.writeFileSync(f.selected, longAuth);
+  f.run([long]);
+  const scratch = JSON.parse(fs.readFileSync(f.record, 'utf8')).home;
+  assert.ok(path.basename(scratch).length < 60, 'long numeric IDs never become long paths');
+  assert.equal(fs.existsSync(scratch), false);
+  const status = f.run(['status']);
+  const listed = status.split(/\r?\n/).filter(line => /^[ *] [1-9][0-9]*  /.test(line))
+    .map(line => line.match(/^[ *] ([1-9][0-9]*)  /)[1]);
+  assert.deepEqual(listed, ['1', '3', '10', huge, long]);
+  assert.equal(status.includes('not configured'), false, 'status does not invent missing account rows');
+  const refreshed = auth('third', 'refreshed');
+  f.run(['3']);
+  f.put(refreshed);
+  f.run(['10']);
+  f.run(['3']);
+  assert.equal(f.read(), refreshed);
+  f.run(['save', '42'], 1);
+  assert.equal(f.read(), refreshed, 'duplicates are rejected for all IDs');
+  const replacement = auth('third', 'reauthenticated');
+  fs.writeFileSync(f.selected, replacement);
+  f.run(['login', '3']);
+  assert.equal(f.read(), replacement);
+  f.run(['1']);
+  f.run(['forget', '3']);
+  assert.equal(f.read(), alpha);
+  fs.writeFileSync(f.selected, auth('new-third'));
+  f.run(['3']);
+  assert.equal(f.read(), fs.readFileSync(f.selected, 'utf8'));
+  f.put(auth('manually-signed-in'));
+  f.run(['save', '42']);
+  f.run([long]);
+  assert.equal(f.read(), longAuth);
+});
+
+test('legacy account 1 and 2 backups accept more slots without changing existing entries', t => {
+  const f = fixture(t);
+  secureDirectory(f.state);
+  const store = new VaultStore(f.state, { backend });
+  const alpha = auth('alpha');
+  const beta = auth('beta');
+  store.write({ version: 1, codex_home: f.home, accounts: {
+    '1': { auth: alpha, saved_at: 'legacy-1' },
+    '2': { auth: beta, saved_at: 'legacy-2' },
+  } });
+  f.put(auth('third'));
+  f.run(['save', '3']);
+  const updated = store.read(f.home);
+  assert.equal(updated.version, 1);
+  assert.deepEqual(updated.accounts['1'], { auth: alpha, saved_at: 'legacy-1' });
+  assert.deepEqual(updated.accounts['2'], { auth: beta, saved_at: 'legacy-2' });
+  f.run(['2']);
+  assert.equal(f.read(), beta);
+});
+
+test('large collections are listed once each without a fixed account limit', t => {
+  const f = fixture(t);
+  const accounts = Object.fromEntries(Array.from({ length: 512 }, (_, index) => [
+    String(index + 1), { auth: auth(`person${index + 1}`) },
+  ]));
+  const vault = { version: 1, codex_home: f.home, accounts };
+  const output = [];
+  const switcher = new AccountSwitcher({ home: f.home, state: f.state, auth: f.authPath }, {
+    read: () => structuredClone(vault), write() {}, backend: 'memory',
+  }, { log: line => output.push(line) });
+  switcher.status();
+  const rows = output.filter(line => /^[ *] [1-9][0-9]*  /.test(line));
+  assert.equal(rows.length, 512);
+  assert.match(rows[0], /^  1  /);
+  assert.match(rows.at(-1), /^  512  /);
+  switcher.setSaved('9007199254740993', auth('another-person'));
+  assert.equal(Object.keys(switcher.vault.accounts).length, 513);
 });
 
 test('setup backs up config, preserves other settings, and blocks keyring/file mismatch', t => {
@@ -285,6 +395,20 @@ test('duplicate entries in a damaged vault are rejected before any write', t => 
   f.put(alpha);
   const store = {
     read: () => ({ version: 1, codex_home: f.home, accounts: { '1': { auth: alpha }, '2': { auth: alpha } } }),
+    write: () => { throw new Error('must not write'); },
+  };
+  assert.throws(() => new AccountSwitcher({ home: f.home, auth: f.authPath }, store), /duplicate slots/);
+  assert.equal(f.read(), alpha);
+});
+
+test('duplicate identity protection also checks sparse and large account numbers', t => {
+  const f = fixture(t);
+  const alpha = auth('alpha');
+  f.put(alpha);
+  const store = {
+    read: () => ({ version: 1, codex_home: f.home, accounts: {
+      '1': { auth: auth('other') }, '3': { auth: alpha }, '9007199254740993': { auth: alpha },
+    } }),
     write: () => { throw new Error('must not write'); },
   };
   assert.throws(() => new AccountSwitcher({ home: f.home, auth: f.authPath }, store), /duplicate slots/);
