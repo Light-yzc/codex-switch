@@ -1,9 +1,12 @@
 [CmdletBinding()]
-param([string]$InstallDirectory = (Join-Path $env:USERPROFILE '.local\bin'))
+param(
+    [string]$InstallDirectory = (Join-Path $env:USERPROFILE '.local\bin'),
+    [switch]$NoPathUpdate
+)
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
-$npmCommand = Get-Command npm.cmd -CommandType Application -ErrorAction SilentlyContinue
+$npmCommand = Get-Command npm.cmd -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($null -eq $npmCommand -or $null -eq (Get-Command node -CommandType Application -ErrorAction SilentlyContinue)) {
     throw 'Install Node.js 20 or newer (with npm), then run this installer again.'
 }
@@ -32,16 +35,18 @@ try {
         foreach ($entry in $backups) { Copy-Item -LiteralPath $entry.Backup -Destination $entry.Original -Force }
         throw 'Installation failed. Previous launchers were restored.'
     }
-    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-    $entries = @($userPath -split ';' | Where-Object { $_ })
-    if ($InstallDirectory.TrimEnd('\') -notin @($entries | ForEach-Object { $_.TrimEnd('\') })) {
-        $pathBackup = Join-Path $temporary 'previous-user-path.txt'
-        [IO.File]::WriteAllText($pathBackup, [string]$userPath)
-        Copy-Item -LiteralPath $pathBackup -Destination (Join-Path $InstallDirectory ('path-before-codexsw-' + [DateTime]::Now.ToString('yyyyMMdd-HHmmss-fff') + '.txt'))
-        [Environment]::SetEnvironmentVariable('Path', (($entries + $InstallDirectory) -join ';'), 'User')
-    }
-    if ($InstallDirectory.TrimEnd('\') -notin @($env:Path -split ';' | ForEach-Object { $_.TrimEnd('\') })) {
-        $env:Path += ';' + $InstallDirectory
+    if (-not $NoPathUpdate) {
+        $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+        $entries = @($userPath -split ';' | Where-Object { $_ })
+        if ($InstallDirectory.TrimEnd('\') -notin @($entries | ForEach-Object { $_.TrimEnd('\') })) {
+            $pathBackup = Join-Path $temporary 'previous-user-path.txt'
+            [IO.File]::WriteAllText($pathBackup, [string]$userPath)
+            Copy-Item -LiteralPath $pathBackup -Destination (Join-Path $InstallDirectory ('path-before-codexsw-' + [DateTime]::Now.ToString('yyyyMMdd-HHmmss-fff') + '.txt'))
+            [Environment]::SetEnvironmentVariable('Path', (($entries + $InstallDirectory) -join ';'), 'User')
+        }
+        if ($InstallDirectory.TrimEnd('\') -notin @($env:Path -split ';' | ForEach-Object { $_.TrimEnd('\') })) {
+            $env:Path += ';' + $InstallDirectory
+        }
     }
     Write-Host "Installed: $(Join-Path $InstallDirectory 'codexsw.cmd')"
     Write-Host 'Use codexsw 1 / codexsw 2. Existing Windows DPAPI account backups are retained.'

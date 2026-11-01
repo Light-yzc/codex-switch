@@ -46,6 +46,6 @@ jobs:
         shell: powershell
         run: |
           $prefix = Join-Path $env:RUNNER_TEMP 'codexsw-prefix'
-          & .\install.ps1 -InstallDirectory $prefix
+          & .\install.ps1 -InstallDirectory $prefix -NoPathUpdate
           & (Join-Path $prefix 'codexsw.cmd') --version
           & (Join-Path $prefix 'codexsw.cmd') --help

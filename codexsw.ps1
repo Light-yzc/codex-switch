@@ -1,5 +1,5 @@
 # Compatibility entry point for the original PowerShell script.
-$runtime = Get-Command node -CommandType Application -ErrorAction SilentlyContinue
+$runtime = Get-Command node -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($null -eq $runtime) {
     [Console]::Error.WriteLine('codexsw requires Node.js 20 or newer on PATH.')
     exit 1

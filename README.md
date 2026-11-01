@@ -17,7 +17,7 @@ codexsw status  # 查看当前选择
 三个系统均可直接安装，不需要先安装 Git：
 
 ```sh
-npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/tags/v0.1.0.tar.gz
+npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/tags/v0.1.1.tar.gz
 ```
 
 或者下载、克隆本仓库，进入目录后安装：
@@ -142,10 +142,10 @@ npm test
 npm pack
 ```
 
-生成的 `codex-account-switch-0.1.0.tgz` 可以离线分发：
+生成的 `codex-account-switch-0.1.1.tgz` 可以离线分发：
 
 ```sh
-npm install --global ./codex-account-switch-0.1.0.tgz
+npm install --global ./codex-account-switch-0.1.1.tgz
 ```
 
 测试使用虚构账号、隔离目录和假的官方登录命令，不进行真实账号登录。覆盖双向切换、刷新凭据保存、当前账号重新授权、失败与重复登录、配置保护、锁、回滚和密钥环失败。

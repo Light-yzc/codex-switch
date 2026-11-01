@@ -16,7 +16,7 @@ runtime dependencies. [中文](README.md)
 Install directly on any supported OS; Git is not required:
 
 ```sh
-npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/tags/v0.1.0.tar.gz
+npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/tags/v0.1.1.tar.gz
 ```
 
 Or download/clone this repository, enter its directory, and run:
@@ -40,7 +40,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 Windows v1 launchers are backed up and the existing DPAPI vault is compatible.
 For an offline package, run `npm pack` and install the resulting `.tgz` with
-`npm install --global ./codex-account-switch-0.1.0.tgz`.
+`npm install --global ./codex-account-switch-0.1.1.tgz`.
 
 ## Register and switch
 
