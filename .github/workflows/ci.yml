@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['22']
+        include:
+          - os: ubuntu-latest
+            node: '20'
+          - os: ubuntu-latest
+            node: '24'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run check
+      - run: npm test
+      - name: Check package contents
+        run: npm pack --dry-run
+      - name: Smoke test user-local Unix installation
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          export CODEXSW_PREFIX="$RUNNER_TEMP/codexsw-prefix"
+          sh ./install.sh
+          "$CODEXSW_PREFIX/bin/codexsw" --version
+          "$CODEXSW_PREFIX/bin/codexsw" --help
+      - name: Smoke test user-local Windows installation
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $prefix = Join-Path $env:RUNNER_TEMP 'codexsw-prefix'
+          & .\install.ps1 -InstallDirectory $prefix
+          & (Join-Path $prefix 'codexsw.cmd') --version
+          & (Join-Path $prefix 'codexsw.cmd') --help
