@@ -13,7 +13,13 @@ runtime dependencies. [中文](README.md)
 
 ## Install
 
-Download or clone this repository, enter its directory, then run:
+Install directly on any supported OS; Git is not required:
+
+```sh
+npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/tags/v0.1.0.tar.gz
+```
+
+Or download/clone this repository, enter its directory, and run:
 
 ```sh
 npm install --global .

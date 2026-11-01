@@ -14,7 +14,13 @@ codexsw status  # 查看当前选择
 
 ## 安装
 
-下载或克隆本仓库，进入目录。可以在三个系统上用相同的 npm 命令安装：
+三个系统均可直接安装，不需要先安装 Git：
+
+```sh
+npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/tags/v0.1.0.tar.gz
+```
+
+或者下载、克隆本仓库，进入目录后安装：
 
 ```sh
 npm install --global .

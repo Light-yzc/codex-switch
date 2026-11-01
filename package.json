@@ -2,6 +2,12 @@
   "name": "codex-account-switch",
   "version": "0.1.0",
   "description": "Switch between two local Codex ChatGPT accounts on Windows, macOS and Linux.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Light-yzc/codex-switch.git"
+  },
+  "homepage": "https://github.com/Light-yzc/codex-switch#readme",
+  "bugs": { "url": "https://github.com/Light-yzc/codex-switch/issues" },
   "type": "module",
   "bin": { "codexsw": "bin/codexsw.js" },
   "engines": { "node": ">=20" },
