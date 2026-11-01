@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { VaultStore, secureDirectory } from '../lib/storage.js';
+import { VaultStore, secureDirectory, safePowerShellError } from '../lib/storage.js';
 
 function fixture(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codexsw-storage-test-'));
@@ -85,6 +85,32 @@ test('Windows DPAPI protects actual bytes and preserves the original vault schem
   assert.equal(store.backend, 'dpapi');
   assert.doesNotMatch(fs.readFileSync(store.file).toString('utf8'), /FAKE-SECRET/);
   assert.deepEqual(new VaultStore(directory).read(vault.codex_home), vault);
+});
+
+test('Windows errors expose only safe stage and error codes, never parser input', () => {
+  const unsafe = 'FAKE-SECRET-must-never-appear';
+  const diagnostic = safePowerShellError({
+    status: 1,
+    stderr: `${unsafe}\nCODEXSW_DPAPI_ERROR:parse-request:System.FormatException:-2146233033\n${unsafe}`,
+  }, 'unprotect');
+  assert.match(diagnostic.safeMessage, /parse-request; System.FormatException; -2146233033/);
+  assert.doesNotMatch(diagnostic.safeMessage, /FAKE-SECRET/);
+  assert.doesNotMatch(safePowerShellError({ status: 1, stderr: unsafe }, unsafe).safeMessage, /FAKE-SECRET/);
+});
+
+test('Windows helper ignores a parent module search path', { skip: process.platform !== 'win32' }, t => {
+  const { directory, vault } = fixture(t);
+  const previous = process.env.PSModulePath;
+  try {
+    process.env.PSModulePath = path.join(directory, 'parent-runtime-modules');
+    secureDirectory(directory);
+    const store = new VaultStore(directory);
+    store.write(vault);
+    assert.deepEqual(new VaultStore(directory).read(vault.codex_home), vault);
+  } finally {
+    if (previous === undefined) delete process.env.PSModulePath;
+    else process.env.PSModulePath = previous;
+  }
 });
 
 test('macOS native Keychain round trip', { skip: process.platform !== 'darwin' }, t => {
