@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Read CPA slot 0 API keys from local `config.cpa.toml` through Codex command-backed authentication; no client `CPA_API_KEY` environment variable is required.
+
 - Reserve slot 0 for CPA with a private editable config and official-config restoration.
 
 - Show full email addresses, plan types and workspace IDs in account output.
