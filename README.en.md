@@ -173,8 +173,8 @@ MIT. Independent project, not affiliated with OpenAI.
 ## CPA / slot 0
 
 `codexsw edit 0` creates a private `config.cpa.toml` and prints its path.
-Edit `base_url` and `model` in that file, and supply `CPA_API_KEY` to the
-Codex client's environment. `codexsw 0` activates this separate configuration.
+Edit `base_url`, `model` and `[codexsw].api_key` in that file. No
+`CPA_API_KEY` environment variable is needed. `codexsw 0` activates this separate configuration.
 The endpoint must support Responses API. Restart/reload clients after switching.
 
 Switching to `codexsw 1` (or another account) restores the complete original
@@ -182,5 +182,7 @@ Switching to `codexsw 1` (or another account) restores the complete original
 configuration; add any desired shared settings to `config.cpa.toml`.
 Changes made to the active config during CPA mode are saved when switching back.
 Slot 0 is reserved: `save 0`, `login 0` and `forget 0` are not account operations.
-The CPA key is supplied separately; ChatGPT auth.json stays available for returning
+The CPA key is read from private local `config.cpa.toml` via command-based auth, and is never copied into active `config.toml`. Never commit this plaintext secret. ChatGPT auth.json stays available for returning
 to saved accounts. An unconfigured CPA slot fails without activating the endpoint.
+
+Older CPA configurations gain a `[codexsw].api_key` entry after running `codexsw edit 0`. Fill it before activating slot 0.
