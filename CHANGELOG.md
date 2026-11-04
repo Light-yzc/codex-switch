@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Reserve slot 0 for CPA with a private editable config and official-config restoration.
+
 - Show full email addresses, plan types and workspace IDs in account output.
 - Save and switch personal and Team workspaces separately under the same user.
 - Keep duplicate protection within each user/workspace pair.

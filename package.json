@@ -14,7 +14,7 @@
   "files": ["bin/", "lib/", "README.md", "README.en.md", "LICENSE", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md"],
   "scripts": {
     "test": "node --test",
-    "check": "node --check bin/codexsw.js && node --check lib/core.js && node --check lib/storage.js && node --check lib/slots.js"
+    "check": "node --check bin/codexsw.js && node --check lib/core.js && node --check lib/storage.js && node --check lib/slots.js && node --check lib/cpa.js"
   },
   "keywords": ["codex", "chatgpt", "account-switch", "cli", "windows", "macos", "linux"],
   "license": "MIT",

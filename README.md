@@ -185,3 +185,17 @@ npm install --global ./codex-account-switch-0.2.0.tgz
 CI 配置覆盖 Windows/macOS/Linux，以及 Linux 上的 Node.js 20/22/24。Windows 测试使用真实 DPAPI，macOS 有原生 Keychain 测试，Linux 检查原生权限。密钥环的模拟测试不等于原生环境验证；新增 CI 需要推送到 GitHub 后实际运行。
 
 MIT License。独立工具，与 OpenAI 官方无隶属关系。
+
+
+## CPA（编号 0）
+
+运行 `codexsw edit 0` 会创建私有的 `config.cpa.toml` 并显示路径。
+用编辑器打开它，填写 `base_url` 和 `model`，为 Codex 客户端配置
+`CPA_API_KEY` 环境变量，再执行 `codexsw 0`。CPA 端点需支持 Responses API。
+切换后请重启或重新加载客户端。
+
+编号 0 使用独立的完整配置；所需插件、项目等设置可加入 `config.cpa.toml`。
+切到 `codexsw 1` 或其他账号时，会恢复切换前完整的 `config.toml`。
+在 CPA 模式中直接修改的配置，会在切回官方账号时保存供下次使用。
+`save 0`、`login 0`、`forget 0` 不适用；CPA 的密钥由环境变量提供，
+官方账号凭据保留用于切回。地址和模型尚未填写时，命令会报错而不会启用端点。

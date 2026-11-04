@@ -100,7 +100,7 @@ test('all account commands accept positive decimal strings without a numeric cei
   }
   for (const number of ['0', '-1', '+1', '01', '1.5', '1e3', ' 1', '1 ', '1\n', '1\r\n', '', 'Infinity', 'NaN', '__proto__', '../3', '３']) {
     assert.equal(isSlot(number), false);
-    for (const args of [[number], ['save', number], ['login', number], ['forget', number]]) {
+    for (const args of [...(number === '0' ? [] : [[number]]), ['save', number], ['login', number], ['forget', number]]) {
       assert.throws(() => parseArgs(args));
     }
   }
@@ -548,4 +548,36 @@ test('path resolution separates different Codex homes and honors explicit state 
   const second = resolvePaths({ codexHome: path.join(f.root, 'other') });
   assert.notEqual(first.state, second.state);
   assert.equal(resolvePaths({ codexHome: f.home, stateDirectory: f.state }).state, f.state);
+});
+
+
+test('CPA zero switches configs, preserves account auth and rolls back failed selections', t => {
+  const f = fixture(t);
+  f.put(auth('alpha'));
+  const config = path.join(f.home, 'config.toml');
+  const official = 'model = "official-model"\n[projects.example]\ntrust_level = "trusted"\n';
+  fs.writeFileSync(config, official);
+  f.run(['save', '1']);
+  f.run(['edit', '0']);
+  const cpaFile = path.join(f.state, 'config.cpa.toml');
+  f.run(['0'], 1);
+  assert.equal(fs.readFileSync(config, 'utf8'), official);
+  const cpa = fs.readFileSync(cpaFile, 'utf8').replace('REPLACE_WITH_CPA_MODEL', 'proxy-model')
+    .replace('REPLACE_WITH_CPA_BASE_URL', 'http://127.0.0.1:12345/v1');
+  fs.writeFileSync(cpaFile, cpa);
+  f.run(['0']);
+  assert.match(fs.readFileSync(config, 'utf8'), /model_provider = "cpa"/);
+  assert.match(f.run(['status']), /\* 0  CPA/);
+  const before = f.read();
+  f.run(['1']);
+  assert.equal(f.read(), before);
+  assert.equal(fs.readFileSync(config, 'utf8'), official);
+  f.run(['0']);
+  f.run(['2'], 1, { CODEXSW_TEST_FAIL: '1' });
+  assert.match(fs.readFileSync(config, 'utf8'), /# codexsw: CPA mode/);
+  fs.appendFileSync(config, '\n# edited while using CPA\n');
+  f.run(['1']);
+  f.run(['0']);
+  assert.match(fs.readFileSync(config, 'utf8'), /edited while using CPA/);
+  assert.equal(f.read(), before);
 });
