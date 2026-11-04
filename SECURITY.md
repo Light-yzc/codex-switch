@@ -25,3 +25,5 @@ OS-backed encryption and permissions do not protect against malware running
 as your user. Locked keyrings, managed policies, custom homes and WSL must be
 handled in their respective environments. Report sanitized errors and
 reproduce problems with fake credentials.
+
+CPA slot 0 stores its API key in local plaintext `config.cpa.toml` under the private state directory. The generated `config.toml` does not contain the key; Codex runs a local token resolver instead. Protect this private file (owner-only 0600 permissions on Unix) and never commit or share it.
