@@ -16,10 +16,10 @@ codexsw status  # 查看当前选择
 
 ## 安装
 
-需要 Node.js 20+ 和 npm。三个系统均可直接安装 GitHub `main` 分支的最新代码，不需要先安装 Git（包含 CPA 编号 `0` 和配置文件密钥读取）：
+需要 Node.js 20+ 和 npm。三个系统均可直接安装 GitHub `v0.2.1` 版本，不需要先安装 Git（包含 CPA 编号 `0` 和配置文件密钥读取）：
 
 ```sh
-npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/heads/main.tar.gz
+npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/tags/v0.2.1.tar.gz
 ```
 
 更新已有安装也执行上面的命令，原有账号备份和本地 CPA 配置会保留。安装后验证：
@@ -29,7 +29,7 @@ codexsw --version
 codexsw help
 ```
 
-旧的 `v0.2.0` 标签不包含后续 CPA 功能，请使用上面的 `main` 地址安装。
+旧的 `v0.2.0` 标签不包含后续 CPA 功能，请使用上面的 `v0.2.1` 地址安装。
 
 或者下载、克隆本仓库，进入目录后安装：
 
@@ -183,10 +183,10 @@ npm test
 npm pack
 ```
 
-生成的 `codex-account-switch-0.2.0.tgz` 可以离线分发：
+生成的 `codex-account-switch-0.2.1.tgz` 可以离线分发：
 
 ```sh
-npm install --global ./codex-account-switch-0.2.0.tgz
+npm install --global ./codex-account-switch-0.2.1.tgz
 ```
 
 测试使用虚构账号、隔离目录和假的官方登录命令，不进行真实账号登录。覆盖多账号切换、旧版备份兼容、512 账号列表、跳号和超长编号、刷新凭据保存、重新授权、失败与重复登录、配置保护、锁、回滚和密钥环失败。

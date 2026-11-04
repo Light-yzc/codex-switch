@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1
 
 - Read CPA slot 0 API keys from local `config.cpa.toml` through Codex command-backed authentication; no client `CPA_API_KEY` environment variable is required.
 

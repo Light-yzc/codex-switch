@@ -17,12 +17,12 @@ runtime dependencies. [中文](README.md)
 
 ## Install
 
-Requires Node.js 20+ and npm. Install the latest code from GitHub `main` on
+Requires Node.js 20+ and npm. Install the GitHub release `v0.2.1` on
 any supported OS; Git is not required. This includes CPA slot `0` and API keys
 read from the local CPA config:
 
 ```sh
-npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/heads/main.tar.gz
+npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/tags/v0.2.1.tar.gz
 ```
 
 Run the same command to update an existing installation. Saved accounts and
@@ -34,7 +34,7 @@ codexsw help
 ```
 
 The older `v0.2.0` tag does not include the subsequent CPA features; use the
-`main` URL above to install them.
+`v0.2.1` URL above to install them.
 
 Or download/clone this repository, enter its directory, and run:
 
@@ -57,7 +57,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 Windows v1 launchers are backed up and the existing DPAPI vault is compatible.
 For an offline package, run `npm pack` and install the resulting `.tgz` with
-`npm install --global ./codex-account-switch-0.2.0.tgz`.
+`npm install --global ./codex-account-switch-0.2.1.tgz`.
 
 ## Register and switch
 

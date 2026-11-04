@@ -1,6 +1,6 @@
 {
   "name": "codex-account-switch",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Switch any number of local Codex ChatGPT accounts on Windows, macOS and Linux.",
   "repository": {
     "type": "git",
