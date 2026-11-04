@@ -563,7 +563,8 @@ test('CPA zero switches configs, preserves account auth and rolls back failed se
   f.run(['0'], 1);
   assert.equal(fs.readFileSync(config, 'utf8'), official);
   const cpa = fs.readFileSync(cpaFile, 'utf8').replace('REPLACE_WITH_CPA_MODEL', 'proxy-model')
-    .replace('REPLACE_WITH_CPA_BASE_URL', 'http://127.0.0.1:12345/v1');
+    .replace('REPLACE_WITH_CPA_BASE_URL', 'http://127.0.0.1:12345/v1')
+    .replace('REPLACE_WITH_CPA_API_KEY', 'original-test-key');
   fs.writeFileSync(cpaFile, cpa);
   f.run(['0']);
   assert.match(fs.readFileSync(config, 'utf8'), /model_provider = "cpa"/);
