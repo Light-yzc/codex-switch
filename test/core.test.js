@@ -563,7 +563,8 @@ test('CPA zero switches configs, preserves account auth and rolls back failed se
   f.run(['0'], 1);
   assert.equal(fs.readFileSync(config, 'utf8'), official);
   const cpa = fs.readFileSync(cpaFile, 'utf8').replace('REPLACE_WITH_CPA_MODEL', 'proxy-model')
-    .replace('REPLACE_WITH_CPA_BASE_URL', 'http://127.0.0.1:12345/v1');
+    .replace('REPLACE_WITH_CPA_BASE_URL', 'http://127.0.0.1:12345/v1')
+    .replace('REPLACE_WITH_CPA_API_KEY', 'original-test-key');
   fs.writeFileSync(cpaFile, cpa);
   f.run(['0']);
   assert.match(fs.readFileSync(config, 'utf8'), /model_provider = "cpa"/);
@@ -580,4 +581,53 @@ test('CPA zero switches configs, preserves account auth and rolls back failed se
   f.run(['0']);
   assert.match(fs.readFileSync(config, 'utf8'), /edited while using CPA/);
   assert.equal(f.read(), before);
+});
+
+
+test('CPA 0 reads its API key from private config without leaking it to Codex config', t => {
+  const f = fixture(t);
+  f.put(auth('alpha'));
+  const config = path.join(f.home, 'config.toml');
+  const original = 'model = "official"\n';
+  fs.writeFileSync(config, original);
+  f.run(['save', '1']);
+  f.run(['edit', '0']);
+  const cpaFile = path.join(f.state, 'config.cpa.toml');
+  let cpa = fs.readFileSync(cpaFile, 'utf8')
+    .replace('REPLACE_WITH_CPA_MODEL', 'test-model')
+    .replace('REPLACE_WITH_CPA_BASE_URL', 'http://127.0.0.1:12345/v1');
+  fs.writeFileSync(cpaFile, cpa);
+  f.run(['0'], 1);
+  assert.equal(fs.readFileSync(config, 'utf8'), original);
+  fs.writeFileSync(cpaFile, cpa.replace('REPLACE_WITH_CPA_API_KEY', 'mock-secret-key'));
+  f.run(['0']);
+  const active = fs.readFileSync(config, 'utf8');
+  assert.match(active, /\[model_providers\.cpa\.auth\]/);
+  assert.doesNotMatch(active, /mock-secret-key|env_key\s*=|^api_key\s*=/m);
+  const output = spawnSync(process.execPath, [path.resolve('bin/cpa-key.js'), cpaFile], { encoding: 'utf8' });
+  assert.equal(output.status, 0);
+  assert.equal(output.stdout, 'mock-secret-key');
+  fs.appendFileSync(config, '\n# user CPA edit\n');
+  f.run(['1']);
+  assert.equal(fs.readFileSync(config, 'utf8'), original);
+  const saved = fs.readFileSync(cpaFile, 'utf8');
+  assert.match(saved, /mock-secret-key/);
+  assert.match(saved, /user CPA edit/);
+  f.run(['0']);
+  assert.equal((fs.readFileSync(config, 'utf8').match(/\[model_providers\.cpa\.auth\]/g) || []).length, 1);
+});
+
+test('CPA 0 upgrades old env-based config and removes old env_key', t => {
+  const f = fixture(t);
+  f.put(auth('alpha'));
+  f.run(['save', '1']);
+  const cpaFile = path.join(f.state, 'config.cpa.toml');
+  fs.writeFileSync(cpaFile, 'model_provider = "cpa"\nmodel = "proxy-model"\n[model_providers.cpa]\nbase_url = "http://127.0.0.1:12345/v1"\nwire_api = "responses"\nenv_key = "CPA_API_KEY"\nrequires_openai_auth = false\n');
+  f.run(['edit', '0']);
+  assert.match(fs.readFileSync(cpaFile, 'utf8'), /\[codexsw\]/);
+  f.run(['0'], 1);
+  fs.writeFileSync(cpaFile, fs.readFileSync(cpaFile, 'utf8').replace('REPLACE_WITH_CPA_API_KEY', 'legacy-secret'));
+  f.run(['0']);
+  const active = fs.readFileSync(path.join(f.home, 'config.toml'), 'utf8');
+  assert.doesNotMatch(active, /env_key|requires_openai_auth|legacy-secret/);
 });
