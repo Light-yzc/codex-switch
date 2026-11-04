@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Show full email addresses, plan types and workspace IDs in account output.
+- Save and switch personal and Team workspaces separately under the same user.
+- Keep duplicate protection within each user/workspace pair.
+
 ## 0.2.0
 
 - Support any number of accounts using positive integer IDs starting at 1.

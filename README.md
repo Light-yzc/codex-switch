@@ -90,7 +90,7 @@ Windows 与 WSL 是不同环境，默认不会共用账号文件。自定义 `CO
 | 命令 | 用途 |
 | --- | --- |
 | `codexsw N` | 选择编号 N；未登记时启动官方登录并添加 |
-| `codexsw` / `codexsw status` / `codexsw list` | 按数字顺序列出全部已保存编号、脱敏邮箱和备份方式 |
+| `codexsw` / `codexsw status` / `codexsw list` | 按数字顺序列出全部已保存编号、完整邮箱、套餐、工作区 ID 和备份方式 |
 | `codexsw save N` | 将当前手动登录登记到编号 N；已有编号仅允许保存同一账号 |
 | `codexsw login N` | 重新授权编号 N 并切换；未登记时添加 |
 | `codexsw forget N` | 删除编号 N 的备份，保留当前登录文件 |
@@ -107,7 +107,7 @@ codexsw login 10
 codexsw forget 42
 ```
 
-`status` 会按 `1、2、3、10、42……` 排序，只列出已登记编号，不创建缺号。同一账号不能登记到多个编号。
+`status` 会按 `1、2、3、10、42……` 排序，只列出已登记编号，不创建缺号。同一用户的同一工作区不能登记到多个编号。同一邮箱下的个人工作区和 Team 工作区可以分别保存到不同编号；登录时请选择对应工作区。列表和切换结果显示完整邮箱、套餐与工作区 ID（套餐未知时显示 `unknown plan`），多个 Team 工作区也可通过 ID 区分。
 
 替换某个编号的账号时，先切到另一个已保存账号，再执行 `forget N` 和 `codexsw N`。例如替换账号 3：先 `codexsw 1`，再 `codexsw forget 3`，最后 `codexsw 3`。正在选中的账号若未登记，切换会暂停并要求先 `save N`，避免丢失登录。
 

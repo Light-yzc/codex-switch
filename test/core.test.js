@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync, spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
-import { authInfo, sameAccount, credentialSetting, parseArgs, AccountSwitcher } from '../lib/core.js';
+import { authInfo, sameAccount, accountLabel, credentialSetting, parseArgs, AccountSwitcher } from '../lib/core.js';
 import { VaultStore, resolvePaths, secureDirectory, acquireLock, unlock, atomicWrite } from '../lib/storage.js';
 import { isSlot, compareSlots } from '../lib/slots.js';
 
@@ -14,11 +14,12 @@ const cli = fileURLToPath(new URL('../bin/codexsw.js', import.meta.url));
 const sensitive = /FAKE-ACCESS|FAKE-REFRESH|fake\.[A-Za-z0-9_-]+\.signature/;
 const backend = process.platform === 'win32' ? 'dpapi' : 'file';
 
-function auth(name, revision = 'initial') {
-  const part = Buffer.from(JSON.stringify({ sub: `fake-sub-${name}`, email: `${name}@example.invalid` })).toString('base64url');
+function auth(name, revision = 'initial', { accountId = `fake-account-${name}`, plan = '' } = {}) {
+  const part = Buffer.from(JSON.stringify({ sub: `fake-sub-${name}`, email: `${name}@example.invalid`,
+    ...(plan ? { 'https://api.openai.com/auth': { chatgpt_plan_type: plan } } : {}) })).toString('base64url');
   return JSON.stringify({
     auth_mode: 'chatgpt', OPENAI_API_KEY: null,
-    tokens: { id_token: `fake.${part}.signature`, access_token: `FAKE-ACCESS-${name}-${revision}`, refresh_token: `FAKE-REFRESH-${name}-${revision}`, account_id: `fake-account-${name}` },
+    tokens: { id_token: `fake.${part}.signature`, access_token: `FAKE-ACCESS-${name}-${revision}`, refresh_token: `FAKE-REFRESH-${name}-${revision}`, account_id: accountId },
     last_refresh: new Date().toISOString(),
   });
 }
@@ -124,6 +125,71 @@ test('identity validation accepts BOM and rejects malformed or API-key caches', 
   }
 });
 
+test('workspace identity stays separate from email, subject and plan changes', () => {
+  const personal = authInfo(auth('alpha', 'initial', { plan: 'plus' }));
+  const team = authInfo(auth('alpha', 'initial', { accountId: 'team-1', plan: 'team' }));
+  assert.equal(sameAccount(personal, team), false);
+  assert.equal(sameAccount({ ...personal, subject: '' }, { ...team, subject: '' }), false);
+  assert.equal(sameAccount(team, { ...team, accountId: 'team-2' }), false);
+  assert.equal(sameAccount(personal, { ...personal, plan: 'pro' }), true);
+  assert.equal(sameAccount(team, { ...team, subject: 'another-user' }), false);
+  assert.equal(sameAccount({ ...team, subject: '' }, { ...team, subject: '', email: 'ALPHA@example.invalid' }), true);
+  assert.equal(sameAccount({ accountId: 'team-1' }, { accountId: 'team-2' }), false);
+  assert.equal(sameAccount({ accountId: 'team-1' }, { accountId: 'team-1' }), true);
+  assert.equal(accountLabel(team), 'alpha@example.invalid [team; workspace: team-1]');
+  assert.equal(accountLabel({ ...team, email: '', plan: '' }), '(ChatGPT account) [unknown plan; workspace: team-1]');
+});
+
+test('plan display supports access-token metadata and opaque tokens', () => {
+  const raw = JSON.parse(auth('alpha', 'initial', { plan: 'plus' }));
+  const payload = Buffer.from(JSON.stringify({
+    'https://api.openai.com/auth': { chatgpt_plan_type: 'team' },
+  })).toString('base64url');
+  raw.tokens.access_token = `fake.${payload}.signature`;
+  assert.equal(authInfo(JSON.stringify(raw)).plan, 'plus', 'ID-token plan takes precedence');
+  delete raw.tokens.id_token;
+  assert.equal(authInfo(JSON.stringify(raw)).plan, 'team');
+  raw.tokens.access_token = 'opaque-access-token';
+  assert.equal(authInfo(JSON.stringify(raw)).plan, '');
+});
+
+test('one email can save, list, refresh and switch personal and multiple Team workspaces', t => {
+  const f = fixture(t);
+  const personal = auth('alpha', 'personal', { plan: 'plus' });
+  const team = auth('alpha', 'team', { accountId: 'team-1', plan: 'team' });
+  const otherTeam = auth('alpha', 'other-team', { accountId: 'team-2', plan: 'team' });
+  f.put(personal);
+  f.run(['save', '1']);
+  fs.writeFileSync(f.selected, team);
+  assert.match(f.run(['2']), /Selected account 2: alpha@example\.invalid \[team; workspace: team-1\]/);
+  f.put(otherTeam);
+  f.run(['save', '3']);
+  const rows = f.run(['status']).split(/\r?\n/).filter(line => /^[ *] [1-9][0-9]*  /.test(line));
+  assert.deepEqual(rows, [
+    '  1  alpha@example.invalid [plus; workspace: fake-account-alpha]',
+    '  2  alpha@example.invalid [team; workspace: team-1]',
+    '* 3  alpha@example.invalid [team; workspace: team-2]',
+  ]);
+  f.run(['save', '4'], 1);
+  f.run(['save', '1'], 1);
+  f.run(['2']);
+  assert.equal(f.read(), team);
+  const refreshed = auth('alpha', 'refreshed-team', { accountId: 'team-1', plan: 'business' });
+  f.put(refreshed);
+  f.run(['1']);
+  assert.equal(f.read(), personal);
+  f.run(['3']);
+  assert.equal(f.read(), otherTeam);
+  f.run(['2']);
+  assert.equal(f.read(), refreshed);
+  fs.writeFileSync(f.selected, personal);
+  f.run(['login', '2'], 1);
+  assert.equal(f.read(), refreshed, 'wrong workspace login preserves the selected workspace');
+  fs.writeFileSync(f.selected, auth('alpha', 'reauthenticated', { accountId: 'team-1', plan: 'team' }));
+  f.run(['login', '2']);
+  assert.equal(f.read(), fs.readFileSync(f.selected, 'utf8'));
+});
+
 test('Windows, macOS and Linux share the complete two-account workflow', t => {
   const f = fixture(t);
   const alpha = auth('alpha');
@@ -190,7 +256,7 @@ test('Windows, macOS and Linux share the complete two-account workflow', t => {
   f.run(['2']);
   assert.equal(f.read(), reauthenticated, 'a saved account restores a missing auth.json');
   f.run(['1']);
-  assert.match(f.run(['status']), /\* 1  a\*\*\*@example.invalid/);
+  assert.match(f.run(['status']), /\* 1  alpha@example\.invalid/);
   f.run(['forget', '2']);
   assert.equal(f.read(), alpha);
   fs.writeFileSync(f.selected, beta);
@@ -214,7 +280,7 @@ test('a fresh login can start at a sparse account number without auth.json', t =
   fs.writeFileSync(f.selected, auth('alpha'));
   f.run(['42']);
   assert.equal(f.read(), fs.readFileSync(f.selected, 'utf8'));
-  assert.match(f.run(['status']), /\* 42  a\*\*\*@example.invalid/);
+  assert.match(f.run(['status']), /\* 42  alpha@example\.invalid/);
 });
 
 test('new accounts beyond two support login, refresh, numeric listing, reauth and deletion', t => {

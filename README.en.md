@@ -102,7 +102,11 @@ codexsw 3 --device-auth
 ```
 
 Status lists saved numbers only, ordered as 1, 2, 3, 10, 42, and so on.
-The same account cannot occupy more than one number. To replace account 3,
+The same user and workspace cannot occupy more than one number. Personal and
+Team workspaces under the same email can be saved separately; choose the intended
+workspace during login. Status and switch output show the full email, plan and
+workspace ID, so multiple Team workspaces remain distinguishable. Missing plan
+metadata is shown as `unknown plan`. To replace account 3,
 select another saved account, forget 3, then select 3 and sign in again.
 Unknown current credentials must be registered with `save N` before switching.
 Device login requires account/workspace support.
