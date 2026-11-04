@@ -17,11 +17,24 @@ runtime dependencies. [中文](README.md)
 
 ## Install
 
-Install directly on any supported OS; Git is not required:
+Requires Node.js 20+ and npm. Install the latest code from GitHub `main` on
+any supported OS; Git is not required. This includes CPA slot `0` and API keys
+read from the local CPA config:
 
 ```sh
-npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/tags/v0.2.0.tar.gz
+npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/heads/main.tar.gz
 ```
+
+Run the same command to update an existing installation. Saved accounts and
+local CPA configuration are preserved. Verify the installation:
+
+```sh
+codexsw --version
+codexsw help
+```
+
+The older `v0.2.0` tag does not include the subsequent CPA features; use the
+`main` URL above to install them.
 
 Or download/clone this repository, enter its directory, and run:
 

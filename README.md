@@ -16,11 +16,20 @@ codexsw status  # 查看当前选择
 
 ## 安装
 
-三个系统均可直接安装，不需要先安装 Git：
+需要 Node.js 20+ 和 npm。三个系统均可直接安装 GitHub `main` 分支的最新代码，不需要先安装 Git（包含 CPA 编号 `0` 和配置文件密钥读取）：
 
 ```sh
-npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/tags/v0.2.0.tar.gz
+npm install --global https://github.com/Light-yzc/codex-switch/archive/refs/heads/main.tar.gz
 ```
+
+更新已有安装也执行上面的命令，原有账号备份和本地 CPA 配置会保留。安装后验证：
+
+```sh
+codexsw --version
+codexsw help
+```
+
+旧的 `v0.2.0` 标签不包含后续 CPA 功能，请使用上面的 `main` 地址安装。
 
 或者下载、克隆本仓库，进入目录后安装：
 
